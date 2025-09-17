@@ -146,6 +146,7 @@ GroundSelectScreen {
     margin: 0 0 0 1;
     .ground-name {
       width: 8;
+      height: 2;
       margin: 0 2 0 0;
       text-align: center;
     }
