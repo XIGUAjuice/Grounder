@@ -1,0 +1,5 @@
+assets/*
+!assets/trace.json
+logs/
+venv/
+__pycache__/
