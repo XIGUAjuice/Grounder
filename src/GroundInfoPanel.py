@@ -111,6 +111,7 @@ class GroundInfoPanel(ScrollableContainer):
 
         logger.info("下单成功，请前往小程序付款")
 
+    @work
     @on(Select.Changed, "#ground-sports-select")
     async def update_venue(self, event: Select.Changed):
         sports_name = event.value

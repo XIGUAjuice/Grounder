@@ -32,20 +32,9 @@ class Grounder(App):
         self.theme = "default"
 
     async def on_ready(self) -> None:
-        time_str = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-        log_path = Path(__file__).parents[1] / "logs"
-        log_path.mkdir(parents=True, exist_ok=True)
-        log_file = log_path / f"Grounder_{time_str}.log"
+        root_logger = logging.getLogger()
         log_widgt = self.query_one("#app-log")
-        logging.basicConfig(
-            handlers=[
-                logging.FileHandler(log_file, mode="w", encoding="utf-8"),
-                AppLogHandler(log_widgt, rich_tracebacks=True, level=logging.INFO),
-            ],
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
+        root_logger.addHandler(AppLogHandler(log_widgt))
 
         logger.info("加载 JSApi")
         self.js_api = JSApi()
@@ -58,6 +47,19 @@ class Grounder(App):
 
 
 if __name__ == "__main__":
+    time_str = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+    log_path = Path(__file__).parents[1] / "logs"
+    log_path.mkdir(parents=True, exist_ok=True)
+    log_file = log_path / f"Grounder_{time_str}.log"
+    logging.basicConfig(
+        handlers=[
+            logging.FileHandler(log_file, mode="w", encoding="utf-8"),
+        ],
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     app = Grounder()
     app.run()
 

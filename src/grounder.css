@@ -153,6 +153,14 @@ GroundSelectScreen {
   }
 }
 
+AppLogPanel{
+    background: $background;
+    &:focus {
+      background: $background;
+      background-tint: $foreground 0%;
+    }
+}
+
 .panel {
   margin: 0 1;
   padding: 1 1;

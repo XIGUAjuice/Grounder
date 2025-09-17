@@ -1,5 +1,9 @@
+import logging
+
 from rich.logging import RichHandler
 from textual.widgets import RichLog
+
+logger = logging.getLogger(__name__)
 
 
 class AppLogPanel(RichLog):
@@ -14,4 +18,14 @@ class AppLogPanel(RichLog):
 
 class AppLogHandler(RichHandler):
     def __init__(self, widget: AppLogPanel, *args, **kwargs):
-        super().__init__(console=widget, *args, **kwargs)
+        super().__init__(
+            console=widget,
+            rich_tracebacks=False,
+            level=logging.INFO,
+            show_level=False,
+            show_path=False,
+            *args,
+            **kwargs
+        )
+        formatter = logging.Formatter("%(message)s")
+        self.setFormatter(formatter)

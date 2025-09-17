@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 
-from textual import on
+from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.screen import ModalScreen
@@ -108,6 +108,7 @@ class GroundSelectScreen(ModalScreen):
     def cancel(self) -> None:
         self.dismiss(None)
 
+    @work
     @on(TabbedContent.TabActivated)
     async def show_grounds_info(self, event: TabbedContent.TabActivated) -> None:
         table: GroundTable = event.pane.query_one("GroundTable")
