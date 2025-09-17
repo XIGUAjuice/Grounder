@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 
@@ -5,7 +6,7 @@ from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Label, TabbedContent, TabPane
+from textual.widgets import Button, Label, Select, TabbedContent, TabPane
 
 from JSApi import JSApi
 from widgets.Table import TabelCell, TableRow
@@ -115,7 +116,11 @@ class GroundSelectScreen(ModalScreen):
         time_container: Vertical = event.pane.query_one("#ground-time-container")
         time_container.remove_children()
 
-        dt_starts, ground_dict = await self.get_ground_dict(table.timestamp)
+        venue_select: Select = self.app.query_one("#ground-venue-select")
+        venue_info = json.loads(venue_select.value)
+        venue_id = venue_info["venue_id"]
+
+        dt_starts, ground_dict = await self.get_ground_dict(venue_id, table.timestamp)
 
         ground_name_labels = [
             Label(ground_name, classes="ground-name")
@@ -145,11 +150,11 @@ class GroundSelectScreen(ModalScreen):
                 container = button_containers[dt_start][ground_name]
                 container.mount(button)
 
-    async def get_ground_dict(self, timestamp):
+    async def get_ground_dict(self, venue_id, timestamp):
         grounds_dict = {}
         dt_starts = []
         try:
-            ground_infos = await self.js_api.get_ground(timestamp)
+            ground_infos = await self.js_api.get_ground(venue_id, timestamp)
         except Exception as e:
             logger.error(f"获取场地信息失败: {e}")
             return dt_starts, grounds_dict

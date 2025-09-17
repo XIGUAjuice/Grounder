@@ -1,5 +1,4 @@
 # %%
-import asyncio
 import base64
 import hashlib
 import json
@@ -48,7 +47,6 @@ class JSApi:
     url_book = "https://jsapp.jussyun.com/jiushi-core/venue/bookVenue/v2"
     sign_key = "527093093C418483029EEC61F70E9DD1"
     sign_secret = "EB70CBAE71094894EE5BD30A68A3C548"
-    venue_id = "27"
     aes_key1 = "jsVenueV20240101".encode()
     aes_key2 = "Bangdao01bangdao".encode()
     iv = "1234567890123456".encode()
@@ -160,16 +158,9 @@ class JSApi:
         else:
             raise httpx.HTTPStatusError(f"HTTP Error: {response.status_code}")
 
-    async def get_book_time(self):
-        payload = {"venueId": self.venue_id}
-        resp = await self.js_post(self.url_book_time, payload)
-        data = resp.json()
-        time_list = data["data"]["venueBookModelList"]
-        return time_list
-
-    async def get_ground(self, timestamp):
+    async def get_ground(self, venue_id, timestamp):
         payload = {
-            "venueId": self.venue_id,
+            "venueId": venue_id,
             "bookTime": str(timestamp),
         }
         resp = await self.js_post(self.url_ground, payload)
