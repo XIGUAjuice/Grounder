@@ -3,3 +3,4 @@ assets/*
 logs/
 venv/
 __pycache__/
+.vscode/

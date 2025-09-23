@@ -1,7 +1,0 @@
-rich
-textual
-httpx
-pycryptodome
-mitmproxy
-pynput
-selenium
