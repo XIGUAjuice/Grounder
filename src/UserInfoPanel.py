@@ -64,7 +64,7 @@ class UserInfoPanel(ScrollableContainer):
 
     async def app_load_done(self) -> None:
         self.js_api: JSApi = self.app.js_api
-        await self.get_user_info()
+        self.login()
 
     def watch_logged_status(self, logged_status: bool) -> None:
         status_icon: Label = self.query_one("#user-status-icon-label")
@@ -77,10 +77,10 @@ class UserInfoPanel(ScrollableContainer):
     @on(Button.Pressed, "#user-login-button")
     @work(thread=True)
     async def login(self) -> None:
-        if self.js_api.get_token() is True:
-            await self.get_user_info()
-        else:
-            logger.error("登录失败，请重试")
+        if self.js_api.read_token() is False:
+            self.js_api.get_token()
+        await self.get_user_info()
+
 
     async def get_user_info(self) -> None:
         try:

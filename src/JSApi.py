@@ -61,7 +61,6 @@ class JSApi:
 
     def __init__(self):
         self.token_getter = TokenGetter()
-        self.headers["token"] = self.token_getter.read_token()
         self.assets_path = Path(__file__).parents[1] / "assets"
         self.verification = Verification(self.assets_path / "trace.json")
 
@@ -71,7 +70,19 @@ class JSApi:
             if token is not None:
                 self.headers["token"] = self.token_getter.read_token()
                 return True
-        return False
+        else:
+            return False
+
+    def read_token(self):
+        token = self.token_getter.read_token()
+        if token is not None:
+            self.headers["token"] = token
+            return True
+        else:
+            return False
+
+    def clear_token(self):
+        self.token_getter.clear_token()
 
     def post_sign(self, payload_str):
         sign_str = f"{payload_str}{self.sign_key}"

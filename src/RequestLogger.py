@@ -17,12 +17,14 @@ class RequestLogger:
         ):
             headers = flow.request.headers
             if headers.get("token"):
-                with open(self.config_path, "w+") as f:
-                    if f.read() == "":
-                        json_dict = {}
-                    else:
+                with open(self.config_path, "r+") as f:
+                    try:
                         json_dict = json.load(f)
+                    except json.JSONDecodeError:
+                        json_dict = {}
                     json_dict["token"] = headers["token"]
+                    f.truncate(0)
+                    f.seek(0)
                     json.dump(json_dict, f)
                     ctx.master.shutdown()
 

@@ -49,14 +49,45 @@ class TokenGetter:
     def read_token(self):
         config_path = Path(__file__).parents[1] / "assets" / "config.json"
         if not config_path.exists():
-            logger.error("配置文件不存在，第一次使用请先登录")
+            logger.info("配置文件不存在，请先登录")
             return None
 
-        with open(config_path, "r") as f:
-            data: dict = json.load(f)
-            token = data.get("token")
-            logger.info(f"读取 token: {token}")
+        with open(config_path, "r+") as f:
+            try:
+                data: dict = json.load(f)
+            except json.JSONDecodeError:
+                logger.info("配置文件格式错误，初始化配置文件")
+                data = {}
+                f.truncate(0)
+                f.seek(0)
+                json.dump(data, f)
+                return None
+
+            token = data.get("token", {})
+            if token == {}:
+                logger.info("配置文件中不存在 token，请先登录")
+                return None
+            logger.debug(f"读取 token: {token}")
             return token
+
+    def clear_token(self):
+        config_path = Path(__file__).parents[1] / "assets" / "config.json"
+        if config_path.exists():
+            logger.info("清除 token")
+            with open(config_path, "r+") as f:
+                try:
+                    json_dict = json.load(f)
+                except json.JSONDecodeError:
+                    logger.info("配置文件格式错误，初始化配置文件")
+                    json_dict = {}
+
+                if "token" in json_dict:
+                    del json_dict["token"]
+                f.truncate(0)
+                f.seek(0)
+                json.dump(json_dict, f)
+        else:
+            logger.info("配置文件不存在")
 
     def check_cert(self):
         try:
