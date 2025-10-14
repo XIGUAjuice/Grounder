@@ -19,6 +19,14 @@ from Verification import Verification
 logger = logging.getLogger(__name__)
 
 
+class TokenExpiredError(Exception):
+    pass
+
+
+class ApiResponseNotExpectedError(Exception):
+    pass
+
+
 class JSApi:
     headers = {
         "Connection": "keep-alive",
@@ -83,7 +91,7 @@ class JSApi:
 
     def get_cipher_text(self, payload):
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
-        logger.info(f"Payload str: {payload_str}")
+        logger.debug(f"Payload str for cipher text: {payload_str}")
         cipher_text = self.aes_encrypt(payload_str)
         return cipher_text
 
@@ -122,16 +130,18 @@ class JSApi:
         logger.debug(f"headers: {response.request.headers}")
         logger.debug(f"url: {response.request.url}")
         logger.debug(f"content: {response.request.content}")
-        logger.debug(response.text)
+        logger.debug(f"text: {response.text}")
 
         if "token.device.invalid" in response.text:
-            logger.error("token 过期，请重新登录")
-            raise Exception("token is expired")
+            raise TokenExpiredError("token expired")
+
+        if "token.force.required" in response.text:
+            raise TokenExpiredError("token required")
 
         if response.status_code == 200:
             return response
         else:
-            logger.error(f"HTTP Error: {response.status_code}")
+            logger.debug(f"HTTP Error: {response.status_code}")
             raise httpx.HTTPStatusError(f"HTTP Error: {response.status_code}")
 
     async def js_get(self, url, params):
@@ -147,11 +157,10 @@ class JSApi:
         logger.debug(f"headers: {response.request.headers}")
         logger.debug(f"url: {response.request.url}")
         logger.debug(f"content: {response.request.content}")
-        logger.info(response.text)
+        logger.debug(f"text: {response.text}")
 
         if "token.device.invalid" in response.text:
-            logger.error("token 过期，请重新登录")
-            raise Exception("token is expired")
+            raise TokenExpiredError("token expired")
 
         if response.status_code == 200:
             return response
@@ -163,9 +172,19 @@ class JSApi:
             "venueId": venue_id,
             "bookTime": str(timestamp),
         }
-        resp = await self.js_post(self.url_ground, payload)
-        data = resp.json()
-        ground_list = data["data"]["statusList"]
+
+        try:
+            resp = await self.js_post(self.url_ground, payload)
+            data = resp.json()
+            ground_list = data["data"]["statusList"]
+        except TokenExpiredError:
+            raise
+        except httpx.HTTPStatusError:
+            raise
+        except Exception as e:
+            logger.debug("get_ground() 返回数据格式异常")
+            logger.debug(e, exc_info=True)
+            raise ApiResponseNotExpectedError("API response not as expected")
         return ground_list
 
     async def get_venue_list(self, sports_name):
@@ -174,15 +193,35 @@ class JSApi:
             "userLatitude": "",
             "userLongitude": "",
         }
-        resp = await self.js_post(self.url_venue, payload)
-        data = resp.json()
-        venue_list = data["data"]
+
+        try:
+            resp = await self.js_post(self.url_venue, payload)
+            data = resp.json()
+            venue_list = data["data"]
+        except TokenExpiredError:
+            raise
+        except httpx.HTTPStatusError:
+            raise
+        except Exception as e:
+            logger.debug("get_venue_list() 返回数据格式异常")
+            logger.debug(e, exc_info=True)
+            raise ApiResponseNotExpectedError("API response not as expected")
         return venue_list
 
     async def get_user_info(self):
-        resp = await self.js_post(self.url_user, {})
-        data = resp.json()
-        user_info = data["data"]
+        try:
+            resp = await self.js_post(self.url_user, {})
+            data = resp.json()
+            user_info = data["data"]
+        except TokenExpiredError:
+            raise
+        except httpx.HTTPStatusError:
+            raise
+        except Exception as e:
+            logger.debug("get_user_info() 返回数据格式异常")
+            logger.debug(e, exc_info=True)
+            raise ApiResponseNotExpectedError("API response not as expected")
+
         self.user_info = user_info
         phone = self.aes_decrypt(user_info["fullMobile"], key=self.aes_key2)
         self.phone = self.remove_non_printable(phone)
@@ -194,9 +233,20 @@ class JSApi:
             "os_type": "wechat_mini",
             "uid": self.user_info["uid"],
         }
-        resp = await self.js_get(self.url_contact, params)
-        data = resp.json()
-        cantacts = data["data"][1]["contacts"]
+
+        try:
+            resp = await self.js_get(self.url_contact, params)
+            data = resp.json()
+            cantacts = data["data"][1]["contacts"]
+        except TokenExpiredError:
+            raise
+        except httpx.HTTPStatusError:
+            raise
+        except Exception as e:
+            logger.debug("get_contact() 返回数据格式异常")
+            logger.debug(e, exc_info=True)
+            raise ApiResponseNotExpectedError("API response not as expected")
+
         self.contacts = cantacts
         return cantacts
 
@@ -232,24 +282,51 @@ class JSApi:
             "voucherFlowId": None,
             "timestamp": int(datetime.now().timestamp() * 1000),
         }
-        logger.info(f"Payload: {json.dumps(payload, ensure_ascii=False)}")
+
         payload = {"ciphertext": self.get_cipher_text(payload)}
-        resp = await self.js_post(self.url_book, payload)
-        html = resp.text
-        self.save_html(html)
-        url_verified = self.verification.solve("v2.html")
-        url_parsed = urlparse(url_verified)
-        query_params = parse_qs(url_parsed.query)
-        query_params["u_aref"] = "wxCaptcha"
-        response = await self.js_post(self.url_book, payload, params=query_params)
-        return response
+
+        try:
+            resp = await self.js_post(self.url_book, payload)
+        except TokenExpiredError:
+            raise
+        except httpx.HTTPStatusError:
+            raise
+
+        if resp.headers.get("Content-Type", "").startswith("text/html"):
+            logger.info("处理验证码...")
+            html = resp.text
+            html_path = self.save_html(html)
+            url_verified = self.verification.solve(html_path)
+            url_parsed = urlparse(url_verified)
+            query_params = parse_qs(url_parsed.query)
+            query_params["u_aref"] = "wxCaptcha"
+
+        try:
+            resp = await self.js_post(self.url_book, payload, params=query_params)
+            data = resp.json()
+        except Exception as e:
+            logger.debug("post_book() 返回数据格式异常")
+            logger.debug(e, exc_info=True)
+            raise ApiResponseNotExpectedError("API response not as expected")
+
+        return_code = data.get("rtnCode")
+        return_msg = data.get("rtnMessage")
+        if return_code != "10000":
+            logger.info(f"预约失败: {return_msg} (错误代码: {return_code})")
+            return False
+        else:
+            return True
 
     def save_html(self, html_content: str, filename: str = "v2.html"):
         url_pattern = re.compile(r"(src ?= ?['\"])//")
         html_content = url_pattern.sub(r"\1https://", html_content)
         html_content = html_content.replace("form.submit();", "")
-        with open(self.assets_path / filename, "w", encoding="utf-8") as f:
+        html_path = self.assets_path / filename
+
+        with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
+
+        return html_path
 
     def remove_non_printable(self, str: str):
         return "".join(ch for ch in str if ch.isprintable())

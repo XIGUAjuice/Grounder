@@ -4,10 +4,11 @@ import logging
 from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Middle, ScrollableContainer
+from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Button, Label, Select
 
-from JSApi import JSApi
+from JSApi import JSApi, TokenExpiredError
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,16 @@ class UserInfoPanel(ScrollableContainer):
     LOG_IN: str = "✅ 已登录"
     LOG_OUT: str = "❌ 未登录"
     logged_status = reactive(False)
+
+    class LoggedStatusChanged(Message):
+        def __init__(self, sender: "UserInfoPanel", logged_status: bool) -> None:
+            self.sender = sender
+            self.logged_status = logged_status
+            super().__init__()
+        
+        @property
+        def control(self) -> "UserInfoPanel":
+            return self.sender
 
     def __init__(
         self,
@@ -75,10 +86,14 @@ class UserInfoPanel(ScrollableContainer):
         try:
             await self.js_api.get_user_info()
             contacts = await self.js_api.get_contact()
+        except TokenExpiredError:
+            logger.info("Token 已过期，请重新登录")
+            self.post_message(self.LoggedStatusChanged(self, False))
+            return
         except Exception as e:
             self.logged_status = False
-            logger.error(f"获取用户信息失败")
-            logger.error(e, exc_info=True)
+            logger.info(f"获取用户信息失败")
+            logger.debug(e, exc_info=True)
             return
 
         self.logged_status = True

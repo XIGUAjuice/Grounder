@@ -5,10 +5,11 @@ from datetime import datetime
 from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
+from textual.message import Message
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Select, TabbedContent, TabPane
 
-from JSApi import JSApi
+from JSApi import JSApi, TokenExpiredError
 from widgets.Table import TabelCell, TableRow
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,16 @@ class GroundTable(ScrollableContainer):
 
 
 class GroundSelectScreen(ModalScreen):
+    class LoggedStatusChanged(Message):
+        def __init__(self, sender: "GroundSelectScreen", logged_status: bool) -> None:
+            self.sender = sender
+            self.logged_status = logged_status
+            super().__init__()
+
+        @property
+        def control(self) -> "GroundSelectScreen":
+            return self.sender
+
     def __init__(self, *children, name=None, id=None, classes=None):
         super().__init__(*children, name=name, id=id, classes=classes)
         self.js_api: JSApi = self.app.js_api
@@ -154,11 +165,18 @@ class GroundSelectScreen(ModalScreen):
     async def get_ground_dict(self, venue_id, timestamp):
         grounds_dict = {}
         dt_starts = []
+
         try:
             ground_infos = await self.js_api.get_ground(venue_id, timestamp)
-        except Exception as e:
-            logger.error(f"获取场地信息失败: {e}")
+        except TokenExpiredError:
+            logger.info("Token 已过期，请重新登录")
+            self.post_message(self.LoggedStatusChanged(self, False))
             return dt_starts, grounds_dict
+        except Exception as e:
+            logger.info(f"获取场地信息失败")
+            logger.debug(e, exc_info=True)
+            return dt_starts, grounds_dict
+
         for info in ground_infos:
             start_time = int(info["startTime"])
             end_time = int(info["endTime"])

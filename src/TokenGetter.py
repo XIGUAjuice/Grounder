@@ -67,14 +67,14 @@ class TokenGetter:
                 encoding="gb2312",
             ).stdout
         except Exception as e:
-            logger.error(f"无法自动检测证书，请确保证书已安装")
+            logger.info(f"无法自动检测证书，请确保证书已安装")
             logger.debug(e, exc_info=True)
             return True
 
         if "mitmproxy" in cert_info:
             return True
         else:
-            logger.error(
+            logger.info(
                 "检测到证书未安装，将自动安装证书。请确保使用管理员权限运行此程序"
             )
             return False
@@ -87,7 +87,7 @@ class TokenGetter:
             response = httpx.get(cert_url)
             response.raise_for_status()
         except Exception as e:
-            logger.error("证书下载失败，请检查网络连接")
+            logger.info("证书下载失败，请检查网络连接")
             logger.debug(e, exc_info=True)
             return False
 
@@ -108,7 +108,7 @@ class TokenGetter:
                 check=True,
             )
         except Exception as e:
-            logger.error("证书安装失败，第一次使用请确保使用管理员权限运行此程序")
+            logger.info("证书安装失败，第一次使用请确保使用管理员权限运行此程序")
             logger.debug(e, exc_info=True)
 
             output = subprocess.run(

@@ -5,16 +5,26 @@ from datetime import datetime
 from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Middle, ScrollableContainer
+from textual.message import Message
 from textual.widgets import Button, Label, Select
 
 from GroundSelectScreen import GroundSelectScreen
-from JSApi import JSApi
+from JSApi import JSApi, TokenExpiredError
 from widgets.TimeSelect import TimeSelect
 
 logger = logging.getLogger(__name__)
 
 
 class GroundInfoPanel(ScrollableContainer):
+    class LoggedStatusChanged(Message):
+        def __init__(self, sender: "GroundInfoPanel", logged_status: bool) -> None:
+            self.sender = sender
+            self.logged_status = logged_status
+            super().__init__()
+
+        @property
+        def control(self) -> "GroundInfoPanel":
+            return self.sender
 
     def __init__(
         self,
@@ -105,9 +115,14 @@ class GroundInfoPanel(ScrollableContainer):
                 sports_name=venue_info["sports_name"],
                 ground_list=ground_list,
             )
+        except TokenExpiredError:
+            logger.info("Token 已过期，请重新登录")
+            self.post_message(self.LoggedStatusChanged(self, False))
+            return
         except Exception as e:
-            logger.error("预定失败")
-            raise
+            logger.info("预定失败")
+            logger.debug(e, exc_info=True)
+            return
 
         logger.info("下单成功，请前往小程序付款")
 
@@ -116,12 +131,18 @@ class GroundInfoPanel(ScrollableContainer):
     async def update_venue(self, event: Select.Changed):
         sports_name = event.value
         if sports_name != Select.BLANK:
-            venue_list = []
             try:
                 venues = await self.js_api.get_venue_list(sports_name)
-            except Exception as e:
-                logger.error("查询场馆信息失败")
+            except TokenExpiredError:
+                logger.info("Token 已过期，请重新登录")
+                self.post_message(self.LoggedStatusChanged(self, False))
                 return
+            except Exception as e:
+                logger.info("查询场馆信息失败")
+                logger.debug(e, exc_info=True)
+                return
+
+            venue_list = []
             for venue in venues:
                 agency_id = venue["agencyId"]
                 agency_name = venue["agencyName"]

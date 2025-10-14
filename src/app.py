@@ -3,11 +3,13 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
 
 from AppLogPanel import AppLogHandler, AppLogPanel
 from GroundInfoPanel import GroundInfoPanel
+from GroundSelectScreen import GroundSelectScreen
 from JSApi import JSApi
 from Theme import default_theme
 from UserInfoPanel import UserInfoPanel
@@ -44,6 +46,22 @@ class Grounder(App):
 
         ground_info_panel = self.query_one(GroundInfoPanel)
         ground_info_panel.app_load_done()
+
+    @on(UserInfoPanel.LoggedStatusChanged)
+    @on(GroundInfoPanel.LoggedStatusChanged)
+    @on(GroundSelectScreen.LoggedStatusChanged)
+    def update_logged_status(
+        self,
+        message: (
+            UserInfoPanel.LoggedStatusChanged
+            | GroundInfoPanel.LoggedStatusChanged
+            | GroundSelectScreen.LoggedStatusChanged
+        ),
+    ) -> None:
+        user_info_panel = self.query_one(UserInfoPanel)
+        user_info_panel.logged_status = message.logged_status
+        if message.logged_status is False:
+            self.js_api.clear_token()
 
 
 if __name__ == "__main__":
