@@ -128,7 +128,9 @@ class JSApi:
         if hasattr(self, "phone"):
             self.headers["fullMobile"] = self.phone
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(
+            proxy="http://192.168.1.4:9999", verify=False
+        ) as client:
             if params is not None:
                 response = await client.post(
                     url, headers=self.headers, params=params, data=payload_str
@@ -162,7 +164,9 @@ class JSApi:
         if hasattr(self, "phone"):
             self.headers["fullMobile"] = self.phone
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(
+            proxy="http://192.168.1.4:9999", verify=False
+        ) as client:
             response = await client.get(url, headers=self.headers, params=params)
 
         logger.debug(f"headers: {response.request.headers}")
