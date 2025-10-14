@@ -41,7 +41,7 @@ class JSApi:
         "Sec-Fetch-Site": "cross-site",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Dest": "empty",
-        "Referer": "https://servicewechat.com/wxbd4ec54a9e9ce6dd/137/page-frame.html",
+        "Referer": "https://servicewechat.com/wxbd4ec54a9e9ce6dd/141/page-frame.html",
         "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "zh-CN,zh;q=0.9",
     }
