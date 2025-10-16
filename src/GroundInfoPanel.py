@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -6,10 +7,10 @@ from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Middle, ScrollableContainer
 from textual.message import Message
-from textual.widgets import Button, Label, Select
+from textual.widgets import Button, Label, Select, Input
 
 from GroundSelectScreen import GroundSelectScreen
-from JSApi import JSApi, TokenExpiredError
+from JSApi import JSApi, TokenExpiredError, retry
 from widgets.TimeSelect import TimeSelect
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,18 @@ class GroundInfoPanel(ScrollableContainer):
         with Horizontal():
             yield Middle(Label("开抢时间: "))
             yield Middle(TimeSelect(id="time-select"))
+
+            yield Middle(Label("重试次数: "), id="retry-label")
+            yield Middle(Input(value="10", type="integer", id="retry-input"))
+
+            yield Middle(Label("重试间隔: "), id="delay-label")
+            yield Middle(Input(value="200", type="integer", id="delay-input"))
+            yield Middle(Label("毫秒"), id="delay-unit-label")
+
+            yield Middle(Label("随机偏差: "), id="jitter-label")
+            yield Middle(Input(value="10", type="integer", id="jitter-input"))
+            yield Middle(Label("%"), id="jitter-unit-label")
+
             yield Middle(Button("开始预定", id="order-button"))
 
     def app_load_done(self) -> None:
@@ -82,31 +95,49 @@ class GroundInfoPanel(ScrollableContainer):
         hour_select: Select = self.query_one("#hour-select")
         minute_select: Select = self.query_one("#minute-select")
         second_select: Select = self.query_one("#second-select")
+        retry_input: Input = self.query_one("#retry-input")
+        delay_input: Input = self.query_one("#delay-input")
+        jitter_input: Input = self.query_one("#jitter-input")
+        contact_select: Select = self.app.query_one("#user-contact-select")
+        venue_select: Select = self.app.query_one("#ground-venue-select")
+
         hour_expected = hour_select.value
         minute_expected = minute_select.value
         second_expected = second_select.value
 
-        logger.info(
-            f"将在 {hour_expected:02}:{minute_expected:02}:{second_expected:02} 发送订单"
-        )
+        max_retries = int(retry_input.value)
+        delay = int(delay_input.value)
+        jitter_percent = int(jitter_input.value)
 
-        while True:
-            now = datetime.now()
-            if (
-                now.hour == hour_expected
-                and now.minute == minute_expected
-                and now.second == second_expected
-            ):
-                break
-
-        contact_select: Select = self.app.query_one("#user-contact-select")
-        venue_select: Select = self.app.query_one("#ground-venue-select")
         contact_id = contact_select.value
         venue_info = json.loads(venue_select.value)
         ground_list = self.grounds_selected
 
+        now = datetime.now()
+        target_time = now.replace(
+            hour=int(hour_expected),
+            minute=int(minute_expected),
+            second=int(second_expected),
+            microsecond=0,
+        )
+
+        if target_time < now:
+            logger.info("预定时间无法早于当前时间")
+            return
+        else:
+            wait_seconds = (target_time - now).total_seconds()
+            logger.info(
+                f"将在 {hour_expected:02}:{minute_expected:02}:{second_expected:02} 发送订单"
+            )
+            logger.info(f"距离预定时间还有 {wait_seconds:.3f} 秒")
+            await asyncio.sleep(wait_seconds)
+            logger.info("开始发送订单")
+
         try:
-            await self.js_api.post_book(
+            book_with_retry = retry(
+                max_retries=max_retries, delay=delay, jitter_percent=jitter_percent
+            )(self.js_api.post_book)
+            await book_with_retry(
                 contact_id=contact_id,
                 venue_id=venue_info["venue_id"],
                 venue_name=venue_info["venue_name"],
@@ -123,8 +154,6 @@ class GroundInfoPanel(ScrollableContainer):
             logger.info("预定失败")
             logger.debug(e, exc_info=True)
             return
-
-        logger.info("下单成功，请前往小程序付款")
 
     @work
     @on(Select.Changed, "#ground-sports-select")

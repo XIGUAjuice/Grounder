@@ -1,8 +1,10 @@
 # %%
+import asyncio
 import base64
 import hashlib
 import json
 import logging
+import random
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -26,6 +28,46 @@ class TokenExpiredError(Exception):
 
 class ApiResponseNotExpectedError(Exception):
     pass
+
+
+class BookFailedError(Exception):
+    pass
+
+
+class retry:
+    def __init__(self, max_retries=10, delay=200, jitter_percent=10):
+        self.max_retries = max_retries
+        self.delay = delay
+        self.jitter_percent = jitter_percent
+
+    def __call__(self, func):
+        async def wrapper(*args, **kwargs):
+            for attempt in range(self.max_retries):
+                try:
+                    success = await func(*args, **kwargs)
+                    attempt += 1
+                except Exception:
+                    logger.info("检测到异常，停止重试")
+                    raise
+
+                if success is True:
+                    return True
+                elif attempt < self.max_retries:
+                    logger.info(f"第 {attempt} 次失败，正在重试...")
+                    jitter_ms = random.uniform(
+                        -self.jitter_percent / 100 * self.delay,
+                        self.jitter_percent / 100 * self.delay,
+                    )
+                    total_delay = self.delay + jitter_ms
+                    logger.debug(
+                        f"jitter_ms: {jitter_ms:.2f}, total_delay: {total_delay:.2f}"
+                    )
+                    await asyncio.sleep(total_delay / 1000)
+
+            logger.info("重试次数已达上限，停止重试。")
+            return False
+
+        return wrapper
 
 
 class JSApi:
@@ -337,18 +379,23 @@ class JSApi:
                 logger.debug(e, exc_info=True)
                 raise ApiResponseNotExpectedError("API response not as expected")
         try:
-            data = resp.json()
+            resp_data = resp.json()
         except Exception as e:
             logger.debug("post_book() 返回数据格式异常")
             logger.debug(e, exc_info=True)
             raise ApiResponseNotExpectedError("API response not as expected")
 
-        return_code = data.get("rtnCode")
-        return_msg = data.get("rtnMessage")
+        return_code = resp_data.get("rtnCode")
+        return_msg = resp_data.get("rtnMessage")
+        if return_code == "venue.call.fail":
+            logger.info(f"预约失败: {return_msg} (错误代码: {return_code})")
+            raise BookFailedError(f"预约失败: {return_msg} (错误代码: {return_code})")
+
         if return_code != "10000":
             logger.info(f"预约失败: {return_msg} (错误代码: {return_code})")
             return False
         else:
+            logger.info("下单成功，请前往小程序付款")
             return True
 
     def save_html(self, html_content: str, filename: str = "v2.html"):
