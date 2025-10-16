@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import execjs
 import httpx
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
@@ -102,7 +103,7 @@ class JSApi:
 
     def get_cipher_text(self, payload):
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
-        logger.debug(f"Payload str for cipher text: {payload_str}")
+        logger.debug(f"payload_str before cipher: {payload_str}")
         cipher_text = self.aes_encrypt(payload_str)
         return cipher_text
 
@@ -299,9 +300,18 @@ class JSApi:
         }
 
         payload = {"ciphertext": self.get_cipher_text(payload)}
+        payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        logger.debug(f"payload_str after cipher: {payload_str}")
+        with open(self.assets_path / "type__1754.js", "r", encoding="utf-8") as f:
+            js_code = f.read()
+        ctx = execjs.compile(js_code)
+        url_book = ctx.call("type__1754", f"{payload_str}")
 
         try:
-            resp = await self.js_post(self.url_book, payload)
+            resp = await self.js_post(
+                url_book,
+                payload,
+            )
         except TokenExpiredError:
             raise
         except httpx.HTTPStatusError:
@@ -316,8 +326,17 @@ class JSApi:
             query_params = parse_qs(url_parsed.query)
             query_params["u_aref"] = "wxCaptcha"
 
+            try:
+                resp = await self.js_post(self.url_book, payload, params=query_params)
+            except TokenExpiredError:
+                raise
+            except httpx.HTTPStatusError:
+                raise
+            except Exception as e:
+                logger.debug("post_book() 返回数据格式异常")
+                logger.debug(e, exc_info=True)
+                raise ApiResponseNotExpectedError("API response not as expected")
         try:
-            resp = await self.js_post(self.url_book, payload, params=query_params)
             data = resp.json()
         except Exception as e:
             logger.debug("post_book() 返回数据格式异常")

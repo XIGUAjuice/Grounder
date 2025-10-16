@@ -1,5 +1,6 @@
 assets/*
 !assets/trace.json
+!assets/type__1754.js
 logs/
 venv/
 __pycache__/
