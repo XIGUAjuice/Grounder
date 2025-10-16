@@ -17,7 +17,8 @@ from widgets.Header import Header
 
 # %%
 logger = logging.getLogger(__name__)
-
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.ERROR)
 
 class Grounder(App):
     CSS_PATH = "grounder.css"
