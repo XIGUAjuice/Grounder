@@ -20,6 +20,7 @@ from Verification import Verification
 
 # %%
 logger = logging.getLogger(__name__)
+debug_mode = False
 
 
 class TokenExpiredError(Exception):
@@ -102,6 +103,13 @@ class JSApi:
     aes_key2 = "Bangdao01bangdao".encode()
     iv = "1234567890123456".encode()
 
+    if debug_mode is True:
+        proxy = "http://192.168.1.4:9999"
+        verify = False
+    else:
+        proxy = None
+        verify = True
+
     def __init__(self):
         self.token_getter = TokenGetter()
         self.assets_path = Path(__file__).parents[1] / "assets"
@@ -171,9 +179,7 @@ class JSApi:
         if hasattr(self, "phone"):
             self.headers["fullMobile"] = self.phone
 
-        async with httpx.AsyncClient(
-            proxy="http://192.168.1.4:9999", verify=False
-        ) as client:
+        async with httpx.AsyncClient(proxy=self.proxy, verify=self.verify) as client:
             if params is not None:
                 response = await client.post(
                     url, headers=self.headers, params=params, data=payload_str
@@ -207,9 +213,7 @@ class JSApi:
         if hasattr(self, "phone"):
             self.headers["fullMobile"] = self.phone
 
-        async with httpx.AsyncClient(
-            proxy="http://192.168.1.4:9999", verify=False
-        ) as client:
+        async with httpx.AsyncClient(proxy=self.proxy, verify=self.verify) as client:
             response = await client.get(url, headers=self.headers, params=params)
 
         logger.debug(f"headers: {response.request.headers}")
