@@ -24,7 +24,7 @@ Label {
 
 Button {
   min-width: 10;
-  min-height: 3;
+  min-height: 1;
   margin: 1 2;
   padding: 0 1;
   border: none;
@@ -89,19 +89,20 @@ GroundInfoPanel {
     padding: 0 0 0 5;
   }
   #retry-label {
-    padding: 0 0 0 5;
+    padding: 0 0 0 0;
   }
   Input {
     height: 1;
     width: 6;
     border: none;
     padding: 0 1;
+    margin: 0 1;
   }
   #delay-label{
-    padding: 0 0 0 5;
+    padding: 0 0 0 2;
   }
   #jitter-label{
-    padding: 0 0 0 5;
+    padding: 0 0 0 2;
   }
 }
 

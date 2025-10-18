@@ -67,7 +67,9 @@ class GroundInfoPanel(ScrollableContainer):
         with Horizontal():
             yield Middle(Label("开抢时间: "))
             yield Middle(TimeSelect(id="time-select"))
+            yield Middle(Button("开始预定", id="order-button"))
 
+        with Horizontal():
             yield Middle(Label("重试次数: "), id="retry-label")
             yield Middle(Input(value="10", type="integer", id="retry-input"))
 
@@ -78,8 +80,6 @@ class GroundInfoPanel(ScrollableContainer):
             yield Middle(Label("随机偏差: "), id="jitter-label")
             yield Middle(Input(value="10", type="integer", id="jitter-input"))
             yield Middle(Label("%"), id="jitter-unit-label")
-
-            yield Middle(Button("开始预定", id="order-button"))
 
     def app_load_done(self) -> None:
         self.js_api: JSApi = self.app.js_api
