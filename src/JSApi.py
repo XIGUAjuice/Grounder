@@ -115,6 +115,10 @@ class JSApi:
         self.assets_path = Path(__file__).parent / "assets"
         self.verification = Verification(self.assets_path / "trace.json")
 
+        with open(self.assets_path / "type__1754.js", "r", encoding="utf-8") as f:
+            js_code = f.read()
+        self.js = execjs.compile(js_code)
+
     def get_token(self):
         if self.token_getter.get_token() is True:
             token = self.token_getter.read_token()
@@ -348,10 +352,7 @@ class JSApi:
         payload = {"ciphertext": self.get_cipher_text(payload)}
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
         logger.debug(f"payload_str after cipher: {payload_str}")
-        with open(self.assets_path / "type__1754.js", "r", encoding="utf-8") as f:
-            js_code = f.read()
-        ctx = execjs.compile(js_code)
-        url_book = ctx.call("type__1754", f"{payload_str}")
+        url_book = self.js.call("type__1754", payload_str)
 
         try:
             resp = await self.js_post(
