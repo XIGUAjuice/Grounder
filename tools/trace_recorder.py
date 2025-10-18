@@ -42,7 +42,7 @@ class TraceRecorder:
             print(f"recording stopped at ({x}, {y})")
             self.pressed = False
             self.active = False
-            assets_path = Path(__file__).parents[1] / "assets"
+            assets_path = Path(__file__).parent / "assets"
             trace_file = (
                 assets_path
                 / f"trace_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"

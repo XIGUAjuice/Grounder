@@ -112,7 +112,7 @@ class JSApi:
 
     def __init__(self):
         self.token_getter = TokenGetter()
-        self.assets_path = Path(__file__).parents[1] / "assets"
+        self.assets_path = Path(__file__).parent / "assets"
         self.verification = Verification(self.assets_path / "trace.json")
 
     def get_token(self):

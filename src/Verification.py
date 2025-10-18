@@ -45,6 +45,6 @@ class Verification:
 
 
 if __name__ == "__main__":
-    assets_path = Path(__file__).parents[1] / "assets"
+    assets_path = Path(__file__).parent / "assets"
     varification = Verification(assets_path / "trace.json")
     print(varification.solve(assets_path / "v2.html"))

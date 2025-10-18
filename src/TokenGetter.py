@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 class TokenGetter:
     def __init__(self):
         self.port = 8012
-        self.assets_path = Path(__file__).parents[1] / "assets"
-        self.src_path = Path(__file__).parents[1] / "src"
+        self.assets_path = Path(__file__).parent / "assets"
+        self.src_path = Path(__file__).parent
 
     def run_mitmproxy(self):
         subprocess.run(
             args=[
-                "mitmdump",
+                (self.assets_path / "mitmdump").as_posix(),
                 "-s",
                 (self.src_path / "RequestLogger.py").as_posix(),
                 "-q",
@@ -29,6 +29,7 @@ class TokenGetter:
         )
 
     def get_token(self):
+        logger.info("准备获取 token, 请稍等...")
         proxy = self.back_up_proxy()
         self.set_proxy()
 
@@ -47,8 +48,10 @@ class TokenGetter:
             return True
 
     def read_token(self):
-        config_path = Path(__file__).parents[1] / "assets" / "config.json"
+        config_path = self.assets_path / "config.json"
         if not config_path.exists():
+            with open(config_path, "w") as f:
+                pass
             logger.info("配置文件不存在，请先登录")
             return None
 
@@ -71,7 +74,7 @@ class TokenGetter:
             return token
 
     def clear_token(self):
-        config_path = Path(__file__).parents[1] / "assets" / "config.json"
+        config_path = self.assets_path / "config.json"
         if config_path.exists():
             logger.info("清除 token")
             with open(config_path, "r+") as f:

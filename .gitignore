@@ -1,7 +1,9 @@
-assets/*
-!assets/trace.json
-!assets/type__1754.js
+**/assets/mitmproxy-ca-cert.cer
+**/assets/config.json
+**/assets/v2.html
 logs/
 venv/
 __pycache__/
 .vscode/
+*build/
+*dist/

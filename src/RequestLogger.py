@@ -29,5 +29,5 @@ class RequestLogger:
                     ctx.master.shutdown()
 
 
-config_path = Path(__file__).parents[1] / "assets" / "config.json"
+config_path = Path(__file__).parent / "assets" / "config.json"
 addons = [RequestLogger(config_path)]
