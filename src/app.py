@@ -1,19 +1,5 @@
-# nuitka-project: --mode=onefile
-# nuitka-project: --windows-icon-from-ico={MAIN_DIRECTORY}/assets/grounder.ico
-# nuitka-project: --include-data-files={MAIN_DIRECTORY}/grounder.css=grounder.css
-# nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/trace.json=./assets/trace.json
-# nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/type__1754.js=./assets/type__1754.js
-# nuitka-project: --include-data-files={MAIN_DIRECTORY}/RequestLogger.py=./RequestLogger.py
-# nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/mitmdump.exe=./assets/mitmdump.exe
-# nuitka-project: --output-filename=Grounder.exe
-# nuitka-project: --company-name=https://github.com/XIGUAjuice
-# nuitka-project: --product-name=Grounder
-# nuitka-project: --product-version=1.0.0
-# nuitka-project: --copyright=https://github.com/XIGUAjuice
 # %%
 import logging
-from datetime import datetime
-from pathlib import Path
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -76,27 +62,3 @@ class Grounder(App):
         user_info_panel.logged_status = message.logged_status
         if message.logged_status is False:
             self.js_api.clear_token()
-
-
-def start():
-    time_str = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-    log_path = Path(__file__).parent / "logs"
-    log_path.mkdir(parents=True, exist_ok=True)
-    log_file = log_path / f"Grounder_{time_str}.log"
-    logging.basicConfig(
-        handlers=[
-            logging.FileHandler(log_file, mode="w", encoding="utf-8"),
-        ],
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    app = Grounder()
-    app.run()
-
-
-if __name__ == "__main__":
-    start()
-
-# %%
