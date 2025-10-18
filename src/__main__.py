@@ -5,6 +5,8 @@
 # nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/type__1754.js=./assets/type__1754.js
 # nuitka-project: --include-data-files={MAIN_DIRECTORY}/RequestLogger.py=./RequestLogger.py
 # nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/mitmdump.exe=./assets/mitmdump.exe
+# nuitka-project: --onefile-tempdir-spec={CACHE_DIR}/Grounder/{VERSION}
+# nuitka-project: --onefile-cache-mode=cached
 # nuitka-project: --output-filename=Grounder.exe
 # nuitka-project: --company-name=https://github.com/XIGUAjuice
 # nuitka-project: --product-name=Grounder
