@@ -33,19 +33,25 @@ class TokenGetter:
         proxy = self.back_up_proxy()
         self.set_proxy()
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(self.run_mitmproxy)
-            if not self.check_cert():
-                if not self.install_cert():
-                    self.restore_proxy(proxy)
-                    executor.shutdown(wait=False)
-                    return False
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self.run_mitmproxy)
+                if not self.check_cert():
+                    if not self.install_cert():
+                        self.restore_proxy(proxy)
+                        executor.shutdown(wait=False)
+                        return False
 
-            logger.info("请打开久事体育APP小程序并登录")
-            future.result()
-            logger.info("成功获取到 token, 可以退出小程序了")
+                logger.info("请打开久事体育APP小程序并登录")
+                future.result()
+                logger.info("成功获取到 token, 可以退出小程序了")
+                return True
+        except Exception as e:
+            logger.info("获取 token 过程中出现错误")
+            logger.debug(e, exc_info=True)
+            return False
+        finally:
             self.restore_proxy(proxy)
-            return True
 
     def read_token(self):
         config_path = self.assets_path / "config.json"
