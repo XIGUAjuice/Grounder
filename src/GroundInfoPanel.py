@@ -55,7 +55,10 @@ class GroundInfoPanel(ScrollableContainer):
             yield Middle(Label("[b]选择运动：[/]", id="ground-sports-label"))
             yield Middle(
                 Select(
-                    [("羽毛球", "羽毛球")],
+                    [
+                        ("羽毛球", "羽毛球"),
+                        ("网球", "网球"),
+                    ],
                     prompt="请选择运动项目",
                     id="ground-sports-select",
                 )
