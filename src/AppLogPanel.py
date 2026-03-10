@@ -21,7 +21,7 @@ class AppLogHandler(RichHandler):
         super().__init__(
             console=widget,
             rich_tracebacks=False,
-            level=logging.INFO,
+            level=logging.ERROR,
             show_level=False,
             show_path=False,
             *args,

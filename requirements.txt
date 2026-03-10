@@ -3,5 +3,5 @@ httpx
 pycryptodome
 mitmproxy
 pynput
-selenium
+zendriver
 PyExecJS

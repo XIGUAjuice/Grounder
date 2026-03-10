@@ -5,6 +5,8 @@
 # nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/type__1754.js=./assets/type__1754.js
 # nuitka-project: --include-data-files={MAIN_DIRECTORY}/RequestLogger.py=./RequestLogger.py
 # nuitka-project: --include-data-files={MAIN_DIRECTORY}/assets/mitmdump.exe=./assets/mitmdump.exe
+# nuitka-project: --include-package-data=emoji
+# nuitka-project: --include-package-data=grapheme
 # nuitka-project: --onefile-tempdir-spec={CACHE_DIR}/Grounder/{VERSION}
 # nuitka-project: --onefile-cache-mode=cached
 # nuitka-project: --output-filename=Grounder.exe
@@ -15,6 +17,7 @@
 # %%
 import logging
 import sys
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from app import Grounder
@@ -47,7 +50,7 @@ if __name__ == "__main__":
         logger.exception("发生未知错误，程序终止")
         return_code = 1
     finally:
-        selenium_driver = app.js_api.verification.driver
-        if selenium_driver:
-            selenium_driver.quit()
+        broswer = app.js_api.verification.browser
+        if broswer:
+            asyncio.run(broswer.stop())
         sys.exit(return_code)

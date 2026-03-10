@@ -29,7 +29,7 @@ class TokenGetter:
         )
 
     def get_token(self):
-        logger.info("准备获取 token, 请稍等...")
+        logger.error("准备获取 token, 请稍等...")
         proxy = self.back_up_proxy()
         self.set_proxy()
 
@@ -42,12 +42,12 @@ class TokenGetter:
                         executor.shutdown(wait=False)
                         return False
 
-                logger.info("请打开久事体育APP小程序并登录")
+                logger.error("请打开久事体育APP小程序并登录")
                 future.result()
-                logger.info("成功获取到 token, 可以退出小程序了")
+                logger.error("成功获取到 token, 可以退出小程序了")
                 return True
         except Exception as e:
-            logger.info("获取 token 过程中出现错误")
+            logger.error("获取 token 过程中出现错误")
             logger.debug(e, exc_info=True)
             return False
         finally:
@@ -58,14 +58,14 @@ class TokenGetter:
         if not config_path.exists():
             with open(config_path, "w") as f:
                 pass
-            logger.info("配置文件不存在，请先登录")
+            logger.error("配置文件不存在，请先登录")
             return None
 
         with open(config_path, "r+") as f:
             try:
                 data: dict = json.load(f)
             except json.JSONDecodeError:
-                logger.info("配置文件格式错误，初始化配置文件")
+                logger.error("配置文件格式错误，初始化配置文件")
                 data = {}
                 f.truncate(0)
                 f.seek(0)
@@ -74,7 +74,7 @@ class TokenGetter:
 
             token = data.get("token", {})
             if token == {}:
-                logger.info("配置文件中不存在 token，请先登录")
+                logger.error("配置文件中不存在 token，请先登录")
                 return None
             logger.debug(f"读取 token: {token}")
             return token
@@ -82,12 +82,12 @@ class TokenGetter:
     def clear_token(self):
         config_path = self.assets_path / "config.json"
         if config_path.exists():
-            logger.info("清除 token")
+            logger.error("清除 token")
             with open(config_path, "r+") as f:
                 try:
                     json_dict = json.load(f)
                 except json.JSONDecodeError:
-                    logger.info("配置文件格式错误，初始化配置文件")
+                    logger.error("配置文件格式错误，初始化配置文件")
                     json_dict = {}
 
                 if "token" in json_dict:
@@ -96,7 +96,7 @@ class TokenGetter:
                 f.seek(0)
                 json.dump(json_dict, f)
         else:
-            logger.info("配置文件不存在")
+            logger.error("配置文件不存在")
 
     def check_cert(self):
         try:
@@ -107,34 +107,34 @@ class TokenGetter:
                 encoding="gb2312",
             ).stdout
         except Exception as e:
-            logger.info(f"无法自动检测证书，请确保证书已安装")
+            logger.error(f"无法自动检测证书，请确保证书已安装")
             logger.debug(e, exc_info=True)
             return True
 
         if "mitmproxy" in cert_info:
             return True
         else:
-            logger.info(
+            logger.error(
                 "检测到证书未安装，将自动安装证书。请确保使用管理员权限运行此程序"
             )
             return False
 
     def install_cert(self):
-        logger.info("正在下载证书...")
+        logger.error("正在下载证书...")
         cert_url = "http://mitm.it/cert/cer"
 
         try:
             response = httpx.get(cert_url)
             response.raise_for_status()
         except Exception as e:
-            logger.info("证书下载失败，请检查网络连接")
+            logger.error("证书下载失败，请检查网络连接")
             logger.debug(e, exc_info=True)
             return False
 
         with open(self.assets_path / "mitmproxy-ca-cert.cer", "wb") as f:
             f.write(response.content)
 
-        logger.info("证书下载成功，正在安装证书...")
+        logger.error("证书下载成功，正在安装证书...")
 
         try:
             subprocess.run(
@@ -148,7 +148,7 @@ class TokenGetter:
                 check=True,
             )
         except Exception as e:
-            logger.info("证书安装失败，第一次使用请确保使用管理员权限运行此程序")
+            logger.error("证书安装失败，第一次使用请确保使用管理员权限运行此程序")
             logger.debug(e, exc_info=True)
 
             output = subprocess.run(
@@ -159,7 +159,7 @@ class TokenGetter:
             logger.debug(output)
             return False
 
-        logger.info("证书安装成功")
+        logger.error("证书安装成功")
         return True
 
     def back_up_proxy(self):

@@ -38,8 +38,9 @@ class Grounder(App):
         log_widgt = self.query_one("#app-log")
         root_logger.addHandler(AppLogHandler(log_widgt))
 
-        logger.info("加载 JSApi")
+        logger.error("加载 JSApi")
         self.js_api = JSApi()
+        await self.js_api.verification.start_browser()
 
         user_info_panel = self.query_one(UserInfoPanel)
         await user_info_panel.app_load_done()

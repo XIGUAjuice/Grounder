@@ -1,24 +1,16 @@
 # %%
 import json
+import logging
 from pathlib import Path
 
-from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-
+import zendriver as zd
 
 # %%
+logger = logging.getLogger(__name__)
+
+
 class Verification:
     def __init__(self, trace_path):
-        options = webdriver.ChromeOptions()
-        service = webdriver.ChromeService(service_args=["--enable-chrome-logs"])
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--headless=new")
-        options.add_argument("--no-sandbox")
-        self.driver = webdriver.Chrome(options=options, service=service)
-
         with open(trace_path, "r") as f:
             trace = json.load(f)["trace"]
         trace = [
@@ -26,25 +18,23 @@ class Verification:
         ]
         self.trace = trace
 
-    def move_slider(self, slider):
-        ActionChains(self.driver, 100).click_and_hold(slider).perform()
+    async def move_slider(self, slider: zd.Element):
         for dx, dy in self.trace:
-            ActionChains(self.driver, 0).move_by_offset(dx, dy).perform()
-        ActionChains(self.driver, 100).release().perform()
+            await slider.mouse_drag((dx, dy), relative=True, steps=3)
 
-    def solve(self, html_path):
-        html_path = f"file://{Path(html_path).resolve()}"
-        self.driver.get(html_path)
-        wait = WebDriverWait(self.driver, timeout=10)
-        slider = wait.until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, ".btn_slide"))
-        )
-        self.move_slider(slider)
-        form = wait.until(EC.presence_of_element_located((By.XPATH, "//form[@action]")))
-        return form.get_attribute("action")
+    async def start_browser(self):
+        self.browser = await zd.start(headless=True)
+
+    async def solve(self, html_path):
+        page = await self.browser.get(f"file://{Path(html_path).resolve()}")
+        slider = await page.find("div[id='aliyunCaptcha-sliding-slider']")
+        await self.move_slider(slider)
+        form = (await page.xpath("//form[@action]"))[0]
+        return form.attrs["action"]
 
 
 if __name__ == "__main__":
     assets_path = Path(__file__).parent / "assets"
     varification = Verification(assets_path / "trace.json")
+    varification.start_browser()
     print(varification.solve(assets_path / "v2.html"))

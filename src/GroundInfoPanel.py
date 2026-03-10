@@ -113,8 +113,17 @@ class GroundInfoPanel(ScrollableContainer):
         jitter_percent = int(jitter_input.value)
 
         contact_id = contact_select.value
-        venue_info = json.loads(venue_select.value)
-        ground_list = self.grounds_selected
+
+        try:
+            venue_info = json.loads(venue_select.value)
+        except Exception:
+            logger.error("请确认场馆信息是否正确")
+            return
+        try:
+            ground_list = self.grounds_selected
+        except Exception:
+            logger.error("请先选择场地")
+            return
 
         now = datetime.now()
         target_time = now.replace(
@@ -125,16 +134,19 @@ class GroundInfoPanel(ScrollableContainer):
         )
 
         if target_time < now:
-            logger.info("预定时间无法早于当前时间")
+            logger.error("预定时间无法早于当前时间")
+            return
+        elif contact_id is Select.BLANK:
+            logger.error("请先选择联系人")
             return
         else:
             wait_seconds = (target_time - now).total_seconds()
-            logger.info(
+            logger.error(
                 f"将在 {hour_expected:02}:{minute_expected:02}:{second_expected:02} 发送订单"
             )
-            logger.info(f"距离预定时间还有 {wait_seconds:.3f} 秒")
+            logger.error(f"距离预定时间还有 {wait_seconds:.3f} 秒")
             await asyncio.sleep(wait_seconds)
-            logger.info("开始发送订单")
+            logger.error("开始发送订单")
 
         try:
             book_with_retry = retry(
@@ -150,11 +162,11 @@ class GroundInfoPanel(ScrollableContainer):
                 ground_list=ground_list,
             )
         except TokenExpiredError:
-            logger.info("Token 已过期，请重新登录")
+            logger.error("Token 已过期，请重新登录")
             self.post_message(self.LoggedStatusChanged(self, False))
             return
         except Exception as e:
-            logger.info("预定失败")
+            logger.error("预定失败")
             logger.debug(e, exc_info=True)
             return
 
@@ -166,11 +178,11 @@ class GroundInfoPanel(ScrollableContainer):
             try:
                 venues = await self.js_api.get_venue_list(sports_name)
             except TokenExpiredError:
-                logger.info("Token 已过期，请重新登录")
+                logger.error("Token 已过期，请重新登录")
                 self.post_message(self.LoggedStatusChanged(self, False))
                 return
             except Exception as e:
-                logger.info("查询场馆信息失败")
+                logger.error("查询场馆信息失败")
                 logger.debug(e, exc_info=True)
                 return
 

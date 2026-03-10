@@ -48,13 +48,13 @@ class retry:
                     success = await func(*args, **kwargs)
                     attempt += 1
                 except Exception:
-                    logger.info("检测到异常，停止重试")
+                    logger.error("检测到异常，停止重试")
                     raise
 
                 if success is True:
                     return True
                 elif attempt < self.max_retries:
-                    logger.info(f"第 {attempt} 次失败，正在重试...")
+                    logger.error(f"第 {attempt} 次失败，正在重试...")
                     jitter_ms = random.uniform(
                         -self.jitter_percent / 100 * self.delay,
                         self.jitter_percent / 100 * self.delay,
@@ -65,7 +65,7 @@ class retry:
                     )
                     await asyncio.sleep(total_delay / 1000)
 
-            logger.info("重试次数已达上限，停止重试。")
+            logger.error("重试次数已达上限，停止重试。")
             return False
 
         return wrapper
@@ -175,7 +175,9 @@ class JSApi:
 
     async def js_post(self, url, payload, params=None):
         payload_str = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        logger.debug(f"Url: {url}")
         logger.debug(f"Payload: {payload_str}")
+        logger.debug(f"Params: {params}")
         js_sign = self.post_sign(payload_str)
 
         self.headers["js_sign"] = js_sign
@@ -249,6 +251,7 @@ class JSApi:
             raise
         except Exception as e:
             logger.debug("get_ground() 返回数据格式异常")
+            logger.debug(resp.text)
             logger.debug(e, exc_info=True)
             raise ApiResponseNotExpectedError("API response not as expected")
         return ground_list
@@ -270,6 +273,7 @@ class JSApi:
             raise
         except Exception as e:
             logger.debug("get_venue_list() 返回数据格式异常")
+            logger.debug(resp.text)
             logger.debug(e, exc_info=True)
             raise ApiResponseNotExpectedError("API response not as expected")
         return venue_list
@@ -285,6 +289,7 @@ class JSApi:
             raise
         except Exception as e:
             logger.debug("get_user_info() 返回数据格式异常")
+            logger.debug(resp.text)
             logger.debug(e, exc_info=True)
             raise ApiResponseNotExpectedError("API response not as expected")
 
@@ -310,6 +315,7 @@ class JSApi:
             raise
         except Exception as e:
             logger.debug("get_contact() 返回数据格式异常")
+            logger.debug(resp.text)
             logger.debug(e, exc_info=True)
             raise ApiResponseNotExpectedError("API response not as expected")
 
@@ -365,13 +371,17 @@ class JSApi:
             raise
 
         if resp.headers.get("Content-Type", "").startswith("text/html"):
-            logger.info("处理验证码...")
+            logger.error("处理验证码...")
             html = resp.text
             html_path = self.save_html(html)
-            url_verified = self.verification.solve(html_path)
+            try:
+                url_verified = await self.verification.solve(html_path)
+            except Exception as e:
+                logger.debug("验证码处理失败")
+                logger.debug(e, exc_info=True)
+                return False
             url_parsed = urlparse(url_verified)
             query_params = parse_qs(url_parsed.query)
-            query_params["u_aref"] = "wxCaptcha"
 
             try:
                 resp = await self.js_post(self.url_book, payload, params=query_params)
@@ -381,32 +391,34 @@ class JSApi:
                 raise
             except Exception as e:
                 logger.debug("post_book() 返回数据格式异常")
+                logger.debug(resp.text)
                 logger.debug(e, exc_info=True)
                 raise ApiResponseNotExpectedError("API response not as expected")
         try:
             resp_data = resp.json()
         except Exception as e:
             logger.debug("post_book() 返回数据格式异常")
+            logger.debug(resp.text)
             logger.debug(e, exc_info=True)
             raise ApiResponseNotExpectedError("API response not as expected")
 
         return_code = resp_data.get("rtnCode")
         return_msg = resp_data.get("rtnMessage")
         if return_code == "venue.call.fail":
-            logger.info(f"预约失败: {return_msg} (错误代码: {return_code})")
-            raise BookFailedError(f"预约失败: {return_msg} (错误代码: {return_code})")
+            logger.error(f"预约失败: {return_msg} (错误代码: {return_code})")
+            return False
 
         if return_code != "10000":
-            logger.info(f"预约失败: {return_msg} (错误代码: {return_code})")
+            logger.error(f"预约失败: {return_msg} (错误代码: {return_code})")
             return False
         else:
-            logger.info("下单成功，请前往小程序付款")
+            logger.error("下单成功，请前往小程序付款")
             return True
 
     def save_html(self, html_content: str, filename: str = "v2.html"):
         url_pattern = re.compile(r"(src ?= ?['\"])//")
         html_content = url_pattern.sub(r"\1https://", html_content)
-        html_content = html_content.replace("form.submit();", "")
+        html_content = html_content.replace(",t.submit()", "")
         html_path = self.assets_path / filename
 
         with open(html_path, "w", encoding="utf-8") as f:

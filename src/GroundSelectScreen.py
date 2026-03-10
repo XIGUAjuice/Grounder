@@ -112,7 +112,7 @@ class GroundSelectScreen(ModalScreen):
         if not selected_grounds:
             logger.warning("未选择任何场地")
         else:
-            logger.info(f"已选择场地: {selected_grounds}")
+            logger.error(f"已选择场地: {selected_grounds}")
         self.dismiss(selected_grounds)
 
     @on(Button.Pressed, "#ground-cancel-button")
@@ -169,11 +169,11 @@ class GroundSelectScreen(ModalScreen):
         try:
             ground_infos = await self.js_api.get_ground(venue_id, timestamp)
         except TokenExpiredError:
-            logger.info("Token 已过期，请重新登录")
+            logger.error("Token 已过期，请重新登录")
             self.post_message(self.LoggedStatusChanged(self, False))
             return dt_starts, grounds_dict
         except Exception as e:
-            logger.info(f"获取场地信息失败")
+            logger.error(f"获取场地信息失败")
             logger.debug(e, exc_info=True)
             return dt_starts, grounds_dict
 
